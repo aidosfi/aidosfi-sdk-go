@@ -1,7 +1,20 @@
-# AidosFi Go SDK
+# AidosFi Go SDK $AIDOS
 
-`github.com/aidosfi/sdk` — the official Go client for the AidosFi API.  
-Build shielded accounts, issue ZK-backed debit cards, deploy TEE-autonomous trading agents, and execute darkpool swaps.
+<div align="center">
+
+**The Autonomous Privacy Bank** — Banking, AI Agents, and Darkpool Execution Without Surveillance.
+
+[![Website](https://img.shields.io/badge/Website-aidosfi.app-6366f1?style=flat-square)](https://aidosfi.app)
+[![dApp](https://img.shields.io/badge/dApp-dapp.aidosfi.app-818cf8?style=flat-square)](https://dapp.aidosfi.app)
+[![Docs](https://img.shields.io/badge/Docs-docs.aidosfi.app-c4b5fd?style=flat-square)](https://docs.aidosfi.app)
+[![Whitepaper](https://img.shields.io/badge/Whitepaper-PDF-e9d5ff?style=flat-square)](https://aidosfi.app/whitepaper.pdf)
+[![Telegram](https://img.shields.io/badge/Telegram-t.me%2Faidosfiapp-26a5e4?style=flat-square)](https://t.me/aidosfiapp)
+[![X](https://img.shields.io/badge/X-@aidosfi-1d9bf0?style=flat-square)](https://x.com/aidosfi)
+[![GitHub](https://img.shields.io/badge/GitHub-aidosfi-181717?style=flat-square)](https://github.com/aidosfi)
+
+</div>
+
+---
 
 ```bash
 go get github.com/aidosfi/sdk
