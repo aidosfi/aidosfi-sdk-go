@@ -4,6 +4,10 @@ package aidosfi
 import (
 	"encoding/json"
 	"fmt"
+	"math"
+	"math/rand/v2"
+	"strconv"
+	"time"
 )
 
 // ── Core Types ──────────────────────────────────────────────────
@@ -177,6 +181,14 @@ type SwapReceipt struct {
 	SettledAt  string  `json:"settledAt"`
 }
 
+// ── Health ──────────────────────────────────────────────────────
+
+// HealthResponse is the response from /v1/health.
+type HealthResponse struct {
+	Status  string `json:"status"`
+	Version string `json:"version"`
+}
+
 // ── Pagination ──────────────────────────────────────────────────
 
 // PaginationParams controls cursor-based pagination.
@@ -203,7 +215,6 @@ type WsEvent struct {
 
 // UnmarshalJSON decodes a WsEvent, capturing the raw per-event payload.
 func (e *WsEvent) UnmarshalJSON(data []byte) error {
-	// Decode just the type field to route.
 	raw := struct {
 		Type string `json:"type"`
 	}{}
@@ -212,7 +223,6 @@ func (e *WsEvent) UnmarshalJSON(data []byte) error {
 	}
 	e.Type = raw.Type
 
-	// Re-marshal the full body as the payload for event-specific unmarshaling.
 	e.Payload = make(json.RawMessage, len(data))
 	copy(e.Payload, data)
 	return nil
@@ -259,12 +269,120 @@ func (e AidosError) Error() string {
 	return fmt.Sprintf("aidosfi: [%d] %s — %s", e.Status, e.Code, e.Message)
 }
 
+// ── Retry Configuration ─────────────────────────────────────────
+
+// RetryConfig controls retry behavior.
+type RetryConfig struct {
+	MaxRetries   int
+	InitialDelay time.Duration // default 300ms
+	MaxDelay     time.Duration // default 10s
+}
+
+// DefaultRetryConfig returns sensible defaults.
+func DefaultRetryConfig() RetryConfig {
+	return RetryConfig{
+		MaxRetries:   3,
+		InitialDelay: 300 * time.Millisecond,
+		MaxDelay:     10 * time.Second,
+	}
+}
+
+// ── Idempotency Configuration ───────────────────────────────────
+
+// IdempotencyConfig controls idempotency-key behavior.
+type IdempotencyConfig struct {
+	Enabled bool
+}
+
+// ── Hooks ───────────────────────────────────────────────────────
+
+// HookRequest contains metadata for on-request hooks.
+type HookRequest struct {
+	Method  string
+	URL     string
+	Headers map[string]string
+}
+
+// HookResponse contains metadata for on-response hooks.
+type HookResponse struct {
+	Status   int
+	URL      string
+	Duration time.Duration
+}
+
+// HookError contains metadata for on-error hooks.
+type HookError struct {
+	Error    error
+	URL      string
+	Duration time.Duration
+}
+
+// HooksConfig holds hook callbacks.
+type HooksConfig struct {
+	OnRequest  func(req HookRequest)
+	OnResponse func(resp HookResponse)
+	OnError    func(err HookError)
+}
+
 // ── Client Config ───────────────────────────────────────────────
 
 // AidosConfig holds the configuration for an AidosClient.
 type AidosConfig struct {
-	APIKey  string
-	BaseURL string
-	WsURL   string
-	Timeout int // milliseconds, default 30_000
+	APIKey       string
+	BaseURL      string
+	WsURL        string
+	Timeout      int // milliseconds, default 30_000
+	Retry        *RetryConfig
+	Idempotency  *IdempotencyConfig
+	Hooks        *HooksConfig
+}
+
+// ── WebSocket Config ────────────────────────────────────────────
+
+// ReconnectConfig controls WebSocket auto-reconnect behavior.
+type ReconnectConfig struct {
+	MaxReconnectAttempts int           // default 10
+	ReconnectDelay       time.Duration // default 1s
+}
+
+// DefaultReconnectConfig returns sensible defaults.
+func DefaultReconnectConfig() ReconnectConfig {
+	return ReconnectConfig{
+		MaxReconnectAttempts: 10,
+		ReconnectDelay:       1 * time.Second,
+	}
+}
+
+// ── Helpers ─────────────────────────────────────────────────────
+
+// clamp returns value clamped to [min, max].
+func clamp(val, lo, hi float64) float64 {
+	return math.Max(lo, math.Min(val, hi))
+}
+
+// jitter returns a value in [0.75*base, 1.25*base].
+func jitter(base time.Duration) time.Duration {
+	factor := 0.75 + rand.Float64()*0.5 // ±25%
+	return time.Duration(float64(base) * factor)
+}
+
+// isRetryableStatus returns true for 5xx, 429, or 0 (network error).
+func isRetryableStatus(status int) bool {
+	return status >= 500 || status == 429 || status == 0
+}
+
+// parseRetryAfter parses the Retry-After header (seconds or HTTP-date).
+func parseRetryAfter(val string) (time.Duration, bool) {
+	// Try as seconds
+	if sec, err := strconv.Atoi(val); err == nil && sec > 0 {
+		return time.Duration(sec) * time.Second, true
+	}
+	// Try as HTTP-date
+	if t, err := time.Parse(time.RFC1123, val); err == nil {
+		d := time.Until(t)
+		if d > 0 {
+			return d, true
+		}
+	}
+	return 0, false
 }

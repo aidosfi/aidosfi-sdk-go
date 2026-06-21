@@ -31,6 +31,12 @@ go get github.com/aidosfi/sdk
 | **Agents**    | Deploy, pause, resume, stop autonomous TEE-guarded trading agents with 6 strategies |
 | **Swaps**     | Execute darkpool asset swaps with configurable slippage (ZK-settled) |
 | **WebSocket** | Real-time feed: balance updates, agent status changes, card swipes, swap fills |
+| **WebSocket Reconnect** | Auto-reconnect with exponential backoff + jitter |
+| **Retry**     | Exponential backoff + jitter for transient HTTP/network failures |
+| **Idempotency**| Automatic `Idempotency-Key` header for POST/PUT mutations |
+| **Hooks**     | `OnRequest` / `OnResponse` middleware for logging, metrics, tracing |
+| **fromEnv**   | `NewClientFromEnv()` constructor reads config from environment variables |
+| **Health**    | Check API health status (`/v1/health` → status, version, uptime) |
 | **Pagination**| Cursor-based pagination for list endpoints |
 | **Context**   | All methods accept `context.Context` for cancellation and deadlines |
 | **Errors**    | `AidosError` struct implementing `error` with code, status, and details |
